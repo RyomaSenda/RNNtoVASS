@@ -15,7 +15,7 @@ class ReadTextfile():
     # EOFの場合は ("", -2)
     def getitem(self):
         tag = {"neg": -1, "neu": 0, "pos": 1}
-        specialCharacter = ".,!?;:\"()"
+        specialCharacter = ".,!?;:\"\n()"
         while(True):
             s = self.file.readline()
             if len(s) >= 3:
@@ -30,7 +30,8 @@ class ReadTextfile():
 # txtファイルを受け取り，成形済みデータセットを返す．
 # 単語 to ID の辞書をもち，1データは (文章をID系列に変換したもの, -1 or 0 or 1) の組
 class MyDataset(Dataset):
-    def __init__(self, file, dict, transform=None):
+    def __init__(self, dict, transform=None):
+        file = ReadTextfile('finegrained.txt')
         self.sentences, self.labels, self.proportion = self._get_sentences_(file, dict)
 
     def __getitem__(self, index):
