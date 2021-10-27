@@ -8,10 +8,9 @@ from pathlib import Path
 class NeuralNetwork(nn.Module):
     def __init__(self):
         super(NeuralNetwork, self).__init__()
-        self.hiddenSize = 128
+        self.hiddenSize = 512
         self.w2v_vec_size = 300
-        self.lstm    = nn.LSTM(self.w2v_vec_size,self.hiddenSize)
-        self.relu    = nn.ReLU()
+        self.lstm    = nn.LSTM(self.w2v_vec_size, self.hiddenSize)
         self.fc1     = nn.Linear(self.hiddenSize, 2)
         self.softmax = nn.LogSoftmax(dim=1)
 
@@ -22,8 +21,10 @@ class NeuralNetwork(nn.Module):
         x = self.softmax(x)
         return x
 
-def train_loop(dataloader, model, loss_fn, optimizer):
+def train_loop(dataloader, model, loss_fn, optimizer,t):
     count = 0
+    test_loss, correct = 0, 0
+    max_norm = 10.0
     for batch, (X,y) in enumerate(dataloader):
         # 予測と損失の計算
         count += 1
@@ -31,16 +32,26 @@ def train_loop(dataloader, model, loss_fn, optimizer):
         pred = model(X[0])
         loss = loss_fn(pred, y)
 
+        # training accuracyの計算
+        test_loss += loss_fn(pred, y).item()
+        correct += (pred.argmax(1) == y).type(torch.float).sum().item()
+
         # バックプロパゲーション
         optimizer.zero_grad()
         loss.backward()
+        nn.utils.clip_grad_norm_(model.parameters(), max_norm)
         optimizer.step()
+
+    size = len(dataloader.dataset)
+    test_loss /= size
+    correct /= size
+    print(f"Epoch {t+1} train: Accuracy = {(100*correct):>0.1f}%, Avg loss = {test_loss:>8f}")
 
 def test_loop(dataloader, model, loss_fn,t):
     size = len(dataloader.dataset)
     test_loss, correct = 0, 0
     PNlist = [0] * 4
-    
+
     with torch.no_grad():
         for X, y in dataloader:
             pred = model(X[0])
@@ -50,4 +61,4 @@ def test_loop(dataloader, model, loss_fn,t):
 
     test_loss /= size
     correct /= size
-    print(f"Epoch {t+1}: Accuracy = {(100*correct):>0.1f}%, Avg loss = {test_loss:>8f}, PP/PN/NP/NN = {list}")
+    print(f"Epoch {t+1} test : Accuracy = {(100*correct):>0.1f}%, Avg loss = {test_loss:>8f}, PP/PN/NP/NN = {PNlist}")

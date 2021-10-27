@@ -20,7 +20,7 @@ import MLModel
 # ハイパーパラメータ
 learning_rate = 1e-3
 batch_size = 1
-epochs = 20
+epochs = 1000
 
 args = sys.argv
 # 警告文を無視
@@ -68,7 +68,7 @@ def learn(w2v):
     loss_fn = nn.NLLLoss()
     optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
     for t in range(epochs):
-        MLModel.train_loop(train_dataloader, model, loss_fn, optimizer)
+        MLModel.train_loop(train_dataloader, model, loss_fn, optimizer, t)
         MLModel.test_loop(test_dataloader, model, loss_fn, t)
 
     # 学習済みモデルの保存
