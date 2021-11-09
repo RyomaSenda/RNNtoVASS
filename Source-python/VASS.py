@@ -6,25 +6,150 @@
 # from pathlib import Path
 # import torch.optim as optim
 
+CVecLen = 2
+
+def sampleProgram(word):
+    vass = VASS()
+    for i in range(3):
+        vass.addState()
+    for i in range(2):
+        vass.addSymbol()
+
+    states = vass.states
+    symbols = vass.symbols
+    vass.addTransition(states[0],symbols[0],states[1],[2,1])
+    vass.addTransition(states[1],symbols[1],states[1],[-1,0])
+    vass.addTransition(states[1],symbols[0],states[2],[2,2])
+
+    outputs = vass.outputs
+    vass.addClassifyCondition(states[2],outputs[0],[3,1])
+    vass.addClassifyCondition(states[2],outputs[1],[-3,3])
+
+    input = []
+    for s in word:
+        if s == "a": input.append(symbols[0])
+        elif s == "b": input.append(symbols[1])
+
+    output = vass.run(input)
+    print("================================")
+    print(f"Output is {output.id}")
+    return
+
+class State():
+    def __init__(self, id):
+        super(State, self).__init__()
+        self.id = id
+
+class Symbol():
+    def __init__(self, id):
+        super(Symbol, self).__init__()
+        self.id = id
+
+class Output():
+    def __init__(self, id):
+        super(Output, self).__init__()
+        self.id = id
+
+class Transition():
+    def __init__(self, preState, symbol, nextState, vector):
+        super(Transition, self).__init__()
+        self.preState  = preState
+        self.symbol    = symbol
+        self.nextState = nextState
+        self.vector    = vector
+
+class ClassifyCondition():
+    def __init__(self, state, output, vector):
+        super(ClassifyCondition, self).__init__()
+        self.state  = state
+        self.output = output
+        self.vector = vector
+
+class Configuration():
+    def __init__(self, state, vector):
+        super(Configuration, self).__init__()
+        self.state  = state
+        self.vector = vector
+
 class VASS():
-    def __init__(self, n):
+    def __init__(self):
         super(VASS, self).__init__()
-        # self.states   = []
-        # self.initial  = 0
-        # self.alphabet = []
-        # self.trans    = []
-        self.acceptvec= []
+        # VASSの定義
+        self.iniState           = State(0)
+        self.states             = [self.iniState]
+        self.symbols            = []
+        self.transitions        = []
+        self.classifyConditions = []
+        self.outputs            = [Output(0),Output(1)]
 
-    def setAcceptvec(dataset):
-        for data in dataset:
-            print(data)
-            break
+#=============================================================================
+# VASSを構築する．
+#=============================================================================
+    def addState(self):
+        self.states.append(State(len(self.states)))
 
-    def acceptFunc(vec):
-        max = 0
-        argmax = -1
-        for i in range(len(self.acceptvec)):
-            if vec * self.acceptvec[i] > max or argmax == -1:
-                max = vec * self.acceptvec[i]
-                argmax = i
-        return argmax
+    def addSymbol(self):
+        self.symbols.append(Symbol(len(self.symbols)))
+
+    def addTransition(self, preState, symbol, nextState, vector):
+        self.transitions.append(Transition(preState, symbol, nextState, vector))
+
+    def addClassifyCondition(self, state, output, vector):
+        self.classifyConditions.append(ClassifyCondition(state, output, vector))
+
+    # def addOutput(self):
+    #     self.outputs.append(Output(len(self.outputs)))
+
+#=============================================================================
+# VASSを実行する．
+#=============================================================================
+    def run(self, sequence):
+        conf = self.initConfiguration()
+        for symbol in sequence:
+            conf = self.transit(conf, symbol)
+        return self.getOutput(conf)
+
+    def initConfiguration(self):
+        return Configuration(self.iniState, [0] * CVecLen)
+
+    def transit(self, conf, symbol):
+        nextState, vector = self.transitionFunction(conf.state, symbol)
+        conf.state  = nextState
+        conf.vector = [conf.vector[0] + vector[0],conf.vector[1] + vector[1]]
+        return conf
+
+    def transitionFunction(self, preState, symbol):
+        for t in self.transitions:
+            if t.preState == preState and t.symbol == symbol:
+                return t.nextState, t.vector
+        print("Transition is stopped.")
+        exit()
+
+    def getOutput(self, conf):
+        minDistance = -1
+        minOutput   = Output(-1)
+        for output in self.outputs:
+            _vector = self.getClassifyVector(conf.state, output)
+            if _vector is not None:
+                dist = euclideanDistance(conf.vector, _vector)
+                if minDistance == -1 or minDistance > dist:
+                    minDistance = dist
+                    minOutput = output
+        if minDistance == -1:
+            print("There is no valid output.")
+            exit()
+        return minOutput
+
+    def getClassifyVector(self, state, output):
+        for cond in self.classifyConditions:
+            if cond.state == state and cond.output == output:
+                return cond.vector
+        return None
+
+###############################################################################
+def euclideanDistance(vector1, vector2):
+    dist = 0
+    for i in range(len(vector1)):
+        dist += (vector1[i] - vector2[i]) ** 2
+    dist = dist ** 0.5
+    return dist

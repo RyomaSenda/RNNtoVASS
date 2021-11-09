@@ -16,11 +16,12 @@ import torch.optim as optim
 import data_imdb
 import W2V
 import MLModel
+import VASS
 
 # ハイパーパラメータ
-learning_rate = 1e-3
+learning_rate = 2e-4
 batch_size = 1
-epochs = 1000
+epochs = 100
 
 args = sys.argv
 # 警告文を無視
@@ -30,6 +31,9 @@ warnings.simplefilter('ignore')
 # メイン関数
 # ===============================================
 def main():
+    VASS.sampleProgram(args[1])
+    return
+
     w2v = W2V.W2V()
     if args[1] == "learn":
         learn(w2v)
@@ -70,6 +74,10 @@ def learn(w2v):
     for t in range(epochs):
         MLModel.train_loop(train_dataloader, model, loss_fn, optimizer, t)
         MLModel.test_loop(test_dataloader, model, loss_fn, t)
+        if t % 10 == 0:
+            torch.save(model.state_dict(), 'model_weights.pth')
+            torch.save(model, 'model.pth')
+            print("model is saved")
 
     # 学習済みモデルの保存
     torch.save(model.state_dict(), 'model_weights.pth')
@@ -90,4 +98,4 @@ def search(w2v):
 if __name__ == "__main__":
     start = time.time()
     main()
-    print("erapsed_time = {0}".format(time.time() - start) + " [sec]")
+    # print("erapsed_time = {0}".format(time.time() - start) + " [sec]")

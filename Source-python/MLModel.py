@@ -8,7 +8,7 @@ from pathlib import Path
 class NeuralNetwork(nn.Module):
     def __init__(self):
         super(NeuralNetwork, self).__init__()
-        self.hiddenSize = 512
+        self.hiddenSize = 128
         self.w2v_vec_size = 300
         self.lstm    = nn.LSTM(self.w2v_vec_size, self.hiddenSize)
         self.fc1     = nn.Linear(self.hiddenSize, 2)
