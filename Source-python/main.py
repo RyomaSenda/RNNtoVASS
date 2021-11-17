@@ -31,12 +31,11 @@ warnings.simplefilter('ignore')
 # メイン関数
 # ===============================================
 def main():
-    VASS.sampleProgram(args[1])
-    return
-
     w2v = W2V.W2V()
     if args[1] == "learn":
         learn(w2v)
+    elif args[1] == "extract":
+        extractVass(w2v)
     elif args[1] == "search":
         search(w2v)
 
@@ -56,7 +55,7 @@ def learn(w2v):
 
     # モデルを作成する(model.py参照)
     model = MLModel.NeuralNetwork()
-    # model = torch.load('model.pth')
+    # model.load_state_dict(torch.load('model_weights.pth'))
 
     print("Parameters")
     print("-------------------------------")
@@ -82,6 +81,28 @@ def learn(w2v):
     # 学習済みモデルの保存
     torch.save(model.state_dict(), 'model_weights.pth')
     torch.save(model, 'model.pth')
+
+def extractVass(w2v):
+    # Dataset を作成する。(dataset.py参照)
+    dataset = data_imdb.MyDataset(w2v, None)
+    # train_size = int(0.9 * len(dataset))
+    # test_size = len(dataset) - train_size
+    # train_dataset, test_dataset = torch.utils.data.random_split(dataset, [train_size, test_size])
+
+    # DataLoader を作成する。
+    # train_dataloader = DataLoader(train_dataset, batch_size, shuffle = True)
+    # test_dataloader = DataLoader(test_dataset, batch_size, shuffle = True)
+    dataloader = DataLoader(dataset, batch_size, shuffle = True)
+
+    # モデルを作成する(model.py参照)
+    model = MLModel.NeuralNetwork()
+    model.load_state_dict(torch.load('model_weights.pth'))
+
+    # 抽出
+    vass = VASS.VASS()
+    MLModel.vass_loop(dataloader, model, vass)
+    vass.saveVASS("vass.txt")
+
 
 def search(w2v):
     pos, neg = [], []
